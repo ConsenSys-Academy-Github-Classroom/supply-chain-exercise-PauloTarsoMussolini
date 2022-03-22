@@ -10,7 +10,7 @@ contract SupplyChain {
   uint public skuCount;
 
   // <items mapping>
-  mapping(uint => Item) items;
+  mapping(uint => Item) public items;
 
   // <enum State: ForSale, Sold, Shipped, Received>
   enum State {ForSale, Sold, Shipped, Received}
@@ -60,7 +60,7 @@ contract SupplyChain {
   }
 
   modifier paidEnough(uint _price) { 
-    require(msg.value >= _price, "Value sent is not enough"); 
+    assert(msg.value >= _price); 
     _;
   }
 
@@ -154,13 +154,16 @@ contract SupplyChain {
   //    - check the value after the function is called to make 
   //      sure the buyer is refunded any excess ether sent. 
   // 6. call the event associated with this function!
-  function buyItem(uint sku) public payable forSale(sku)  checkValue(sku) paidEnough(items[sku].price)  {
-    (bool success) = items[sku].seller.send(items[sku].price);
-    require(success, "Fail to buy");
-    items[sku].buyer = msg.sender; 
+  function buyItem(uint sku) public payable
+  forSale(sku)
+  paidEnough(items[sku].price)
+  checkValue(sku)
+  {  
+    uint valueTransfer = items[sku].price; //amount to transfer
+    items[sku].seller.transfer(valueTransfer);
+    items[sku].buyer = msg.sender;
     items[sku].state = State.Sold;
-    emit LogSold(sku);
-
+    emit LogSold(sku); 
   }
 
   // 1. Add modifiers to check:
